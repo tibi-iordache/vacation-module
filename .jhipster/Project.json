@@ -1,0 +1,39 @@
+{
+  "changelogDate": "20230328125234",
+  "dto": "mapstruct",
+  "fields": [
+    {
+      "fieldName": "name",
+      "fieldType": "String"
+    },
+    {
+      "fieldName": "code",
+      "fieldType": "String",
+      "fieldValidateRules": ["required", "unique"]
+    }
+  ],
+  "jpaMetamodelFiltering": true,
+  "name": "Project",
+  "pagination": "pagination",
+  "readOnly": true,
+  "relationships": [
+    {
+      "otherEntityField": "login",
+      "otherEntityName": "user",
+      "otherEntityRelationshipName": "project",
+      "ownerSide": true,
+      "relationshipName": "projectManager",
+      "relationshipType": "many-to-one",
+      "relationshipValidateRules": []
+    },
+    {
+      "otherEntityField": "login",
+      "otherEntityName": "user",
+      "otherEntityRelationshipName": "project",
+      "ownerSide": true,
+      "relationshipName": "techLead",
+      "relationshipType": "many-to-one"
+    }
+  ],
+  "service": "serviceClass"
+}
