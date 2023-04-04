@@ -132,6 +132,42 @@ class TeamResourceIT {
 
     @Test
     @Transactional
+    void createTeam() throws Exception {
+        int databaseSizeBeforeCreate = teamRepository.findAll().size();
+        // Create the Team
+        TeamDTO teamDTO = teamMapper.toDto(team);
+        restTeamMockMvc
+            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(teamDTO)))
+            .andExpect(status().isCreated());
+
+        // Validate the Team in the database
+        List<Team> teamList = teamRepository.findAll();
+        assertThat(teamList).hasSize(databaseSizeBeforeCreate + 1);
+        Team testTeam = teamList.get(teamList.size() - 1);
+        assertThat(testTeam.getName()).isEqualTo(DEFAULT_NAME);
+    }
+
+    @Test
+    @Transactional
+    void createTeamWithExistingId() throws Exception {
+        // Create the Team with an existing ID
+        team.setId(1L);
+        TeamDTO teamDTO = teamMapper.toDto(team);
+
+        int databaseSizeBeforeCreate = teamRepository.findAll().size();
+
+        // An entity with an existing ID cannot be created, so this API call must fail
+        restTeamMockMvc
+            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(teamDTO)))
+            .andExpect(status().isBadRequest());
+
+        // Validate the Team in the database
+        List<Team> teamList = teamRepository.findAll();
+        assertThat(teamList).hasSize(databaseSizeBeforeCreate);
+    }
+
+    @Test
+    @Transactional
     void getAllTeams() throws Exception {
         // Initialize the database
         teamRepository.saveAndFlush(team);
@@ -349,5 +385,239 @@ class TeamResourceIT {
     void getNonExistingTeam() throws Exception {
         // Get the team
         restTeamMockMvc.perform(get(ENTITY_API_URL_ID, Long.MAX_VALUE)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @Transactional
+    void putExistingTeam() throws Exception {
+        // Initialize the database
+        teamRepository.saveAndFlush(team);
+
+        int databaseSizeBeforeUpdate = teamRepository.findAll().size();
+
+        // Update the team
+        Team updatedTeam = teamRepository.findById(team.getId()).get();
+        // Disconnect from session so that the updates on updatedTeam are not directly saved in db
+        em.detach(updatedTeam);
+        updatedTeam.name(UPDATED_NAME);
+        TeamDTO teamDTO = teamMapper.toDto(updatedTeam);
+
+        restTeamMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, teamDTO.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.convertObjectToJsonBytes(teamDTO))
+            )
+            .andExpect(status().isOk());
+
+        // Validate the Team in the database
+        List<Team> teamList = teamRepository.findAll();
+        assertThat(teamList).hasSize(databaseSizeBeforeUpdate);
+        Team testTeam = teamList.get(teamList.size() - 1);
+        assertThat(testTeam.getName()).isEqualTo(UPDATED_NAME);
+    }
+
+    @Test
+    @Transactional
+    void putNonExistingTeam() throws Exception {
+        int databaseSizeBeforeUpdate = teamRepository.findAll().size();
+        team.setId(count.incrementAndGet());
+
+        // Create the Team
+        TeamDTO teamDTO = teamMapper.toDto(team);
+
+        // If the entity doesn't have an ID, it will throw BadRequestAlertException
+        restTeamMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, teamDTO.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.convertObjectToJsonBytes(teamDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        // Validate the Team in the database
+        List<Team> teamList = teamRepository.findAll();
+        assertThat(teamList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void putWithIdMismatchTeam() throws Exception {
+        int databaseSizeBeforeUpdate = teamRepository.findAll().size();
+        team.setId(count.incrementAndGet());
+
+        // Create the Team
+        TeamDTO teamDTO = teamMapper.toDto(team);
+
+        // If url ID doesn't match entity ID, it will throw BadRequestAlertException
+        restTeamMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, count.incrementAndGet())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.convertObjectToJsonBytes(teamDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        // Validate the Team in the database
+        List<Team> teamList = teamRepository.findAll();
+        assertThat(teamList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void putWithMissingIdPathParamTeam() throws Exception {
+        int databaseSizeBeforeUpdate = teamRepository.findAll().size();
+        team.setId(count.incrementAndGet());
+
+        // Create the Team
+        TeamDTO teamDTO = teamMapper.toDto(team);
+
+        // If url ID doesn't match entity ID, it will throw BadRequestAlertException
+        restTeamMockMvc
+            .perform(put(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(teamDTO)))
+            .andExpect(status().isMethodNotAllowed());
+
+        // Validate the Team in the database
+        List<Team> teamList = teamRepository.findAll();
+        assertThat(teamList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void partialUpdateTeamWithPatch() throws Exception {
+        // Initialize the database
+        teamRepository.saveAndFlush(team);
+
+        int databaseSizeBeforeUpdate = teamRepository.findAll().size();
+
+        // Update the team using partial update
+        Team partialUpdatedTeam = new Team();
+        partialUpdatedTeam.setId(team.getId());
+
+        restTeamMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, partialUpdatedTeam.getId())
+                    .contentType("application/merge-patch+json")
+                    .content(TestUtil.convertObjectToJsonBytes(partialUpdatedTeam))
+            )
+            .andExpect(status().isOk());
+
+        // Validate the Team in the database
+        List<Team> teamList = teamRepository.findAll();
+        assertThat(teamList).hasSize(databaseSizeBeforeUpdate);
+        Team testTeam = teamList.get(teamList.size() - 1);
+        assertThat(testTeam.getName()).isEqualTo(DEFAULT_NAME);
+    }
+
+    @Test
+    @Transactional
+    void fullUpdateTeamWithPatch() throws Exception {
+        // Initialize the database
+        teamRepository.saveAndFlush(team);
+
+        int databaseSizeBeforeUpdate = teamRepository.findAll().size();
+
+        // Update the team using partial update
+        Team partialUpdatedTeam = new Team();
+        partialUpdatedTeam.setId(team.getId());
+
+        partialUpdatedTeam.name(UPDATED_NAME);
+
+        restTeamMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, partialUpdatedTeam.getId())
+                    .contentType("application/merge-patch+json")
+                    .content(TestUtil.convertObjectToJsonBytes(partialUpdatedTeam))
+            )
+            .andExpect(status().isOk());
+
+        // Validate the Team in the database
+        List<Team> teamList = teamRepository.findAll();
+        assertThat(teamList).hasSize(databaseSizeBeforeUpdate);
+        Team testTeam = teamList.get(teamList.size() - 1);
+        assertThat(testTeam.getName()).isEqualTo(UPDATED_NAME);
+    }
+
+    @Test
+    @Transactional
+    void patchNonExistingTeam() throws Exception {
+        int databaseSizeBeforeUpdate = teamRepository.findAll().size();
+        team.setId(count.incrementAndGet());
+
+        // Create the Team
+        TeamDTO teamDTO = teamMapper.toDto(team);
+
+        // If the entity doesn't have an ID, it will throw BadRequestAlertException
+        restTeamMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, teamDTO.getId())
+                    .contentType("application/merge-patch+json")
+                    .content(TestUtil.convertObjectToJsonBytes(teamDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        // Validate the Team in the database
+        List<Team> teamList = teamRepository.findAll();
+        assertThat(teamList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void patchWithIdMismatchTeam() throws Exception {
+        int databaseSizeBeforeUpdate = teamRepository.findAll().size();
+        team.setId(count.incrementAndGet());
+
+        // Create the Team
+        TeamDTO teamDTO = teamMapper.toDto(team);
+
+        // If url ID doesn't match entity ID, it will throw BadRequestAlertException
+        restTeamMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, count.incrementAndGet())
+                    .contentType("application/merge-patch+json")
+                    .content(TestUtil.convertObjectToJsonBytes(teamDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        // Validate the Team in the database
+        List<Team> teamList = teamRepository.findAll();
+        assertThat(teamList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void patchWithMissingIdPathParamTeam() throws Exception {
+        int databaseSizeBeforeUpdate = teamRepository.findAll().size();
+        team.setId(count.incrementAndGet());
+
+        // Create the Team
+        TeamDTO teamDTO = teamMapper.toDto(team);
+
+        // If url ID doesn't match entity ID, it will throw BadRequestAlertException
+        restTeamMockMvc
+            .perform(patch(ENTITY_API_URL).contentType("application/merge-patch+json").content(TestUtil.convertObjectToJsonBytes(teamDTO)))
+            .andExpect(status().isMethodNotAllowed());
+
+        // Validate the Team in the database
+        List<Team> teamList = teamRepository.findAll();
+        assertThat(teamList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void deleteTeam() throws Exception {
+        // Initialize the database
+        teamRepository.saveAndFlush(team);
+
+        int databaseSizeBeforeDelete = teamRepository.findAll().size();
+
+        // Delete the team
+        restTeamMockMvc
+            .perform(delete(ENTITY_API_URL_ID, team.getId()).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNoContent());
+
+        // Validate the database contains one less item
+        List<Team> teamList = teamRepository.findAll();
+        assertThat(teamList).hasSize(databaseSizeBeforeDelete - 1);
     }
 }

@@ -15,7 +15,7 @@
   "jpaMetamodelFiltering": true,
   "name": "Project",
   "pagination": "pagination",
-  "readOnly": true,
+  "readOnly": false,
   "relationships": [
     {
       "otherEntityField": "login",

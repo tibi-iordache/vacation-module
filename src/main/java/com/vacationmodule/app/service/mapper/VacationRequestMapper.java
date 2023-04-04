@@ -17,6 +17,7 @@ public interface VacationRequestMapper extends EntityMapper<VacationRequestDTO, 
     @Mapping(target = "approbedBies", source = "approbedBies", qualifiedByName = "userLoginSet")
     VacationRequestDTO toDto(VacationRequest s);
 
+    @Mapping(target = "removeApprobedBy", ignore = true)
     VacationRequest toEntity(VacationRequestDTO vacationRequestDTO);
 
     @Named("userLogin")

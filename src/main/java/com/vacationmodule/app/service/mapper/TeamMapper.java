@@ -19,6 +19,7 @@ public interface TeamMapper extends EntityMapper<TeamDTO, Team> {
     @Mapping(target = "users", source = "users", qualifiedByName = "userLoginSet")
     TeamDTO toDto(Team s);
 
+    @Mapping(target = "removeUser", ignore = true)
     Team toEntity(TeamDTO teamDTO);
 
     @Named("projectId")

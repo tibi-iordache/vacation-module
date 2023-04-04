@@ -21,7 +21,7 @@
   "jpaMetamodelFiltering": true,
   "name": "NationalDay",
   "pagination": "pagination",
-  "readOnly": true,
+  "readOnly": false,
   "relationships": [],
   "service": "serviceClass"
 }

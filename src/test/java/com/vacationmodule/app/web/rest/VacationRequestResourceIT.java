@@ -120,6 +120,67 @@ class VacationRequestResourceIT {
 
     @Test
     @Transactional
+    void createVacationRequest() throws Exception {
+        int databaseSizeBeforeCreate = vacationRequestRepository.findAll().size();
+        // Create the VacationRequest
+        VacationRequestDTO vacationRequestDTO = vacationRequestMapper.toDto(vacationRequest);
+        restVacationRequestMockMvc
+            .perform(
+                post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(vacationRequestDTO))
+            )
+            .andExpect(status().isCreated());
+
+        // Validate the VacationRequest in the database
+        List<VacationRequest> vacationRequestList = vacationRequestRepository.findAll();
+        assertThat(vacationRequestList).hasSize(databaseSizeBeforeCreate + 1);
+        VacationRequest testVacationRequest = vacationRequestList.get(vacationRequestList.size() - 1);
+        assertThat(testVacationRequest.getDescription()).isEqualTo(DEFAULT_DESCRIPTION);
+        assertThat(testVacationRequest.getDate()).isEqualTo(DEFAULT_DATE);
+    }
+
+    @Test
+    @Transactional
+    void createVacationRequestWithExistingId() throws Exception {
+        // Create the VacationRequest with an existing ID
+        vacationRequest.setId(1L);
+        VacationRequestDTO vacationRequestDTO = vacationRequestMapper.toDto(vacationRequest);
+
+        int databaseSizeBeforeCreate = vacationRequestRepository.findAll().size();
+
+        // An entity with an existing ID cannot be created, so this API call must fail
+        restVacationRequestMockMvc
+            .perform(
+                post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(vacationRequestDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        // Validate the VacationRequest in the database
+        List<VacationRequest> vacationRequestList = vacationRequestRepository.findAll();
+        assertThat(vacationRequestList).hasSize(databaseSizeBeforeCreate);
+    }
+
+    @Test
+    @Transactional
+    void checkDateIsRequired() throws Exception {
+        int databaseSizeBeforeTest = vacationRequestRepository.findAll().size();
+        // set the field null
+        vacationRequest.setDate(null);
+
+        // Create the VacationRequest, which fails.
+        VacationRequestDTO vacationRequestDTO = vacationRequestMapper.toDto(vacationRequest);
+
+        restVacationRequestMockMvc
+            .perform(
+                post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(vacationRequestDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        List<VacationRequest> vacationRequestList = vacationRequestRepository.findAll();
+        assertThat(vacationRequestList).hasSize(databaseSizeBeforeTest);
+    }
+
+    @Test
+    @Transactional
     void getAllVacationRequests() throws Exception {
         // Initialize the database
         vacationRequestRepository.saveAndFlush(vacationRequest);
@@ -379,5 +440,248 @@ class VacationRequestResourceIT {
     void getNonExistingVacationRequest() throws Exception {
         // Get the vacationRequest
         restVacationRequestMockMvc.perform(get(ENTITY_API_URL_ID, Long.MAX_VALUE)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @Transactional
+    void putExistingVacationRequest() throws Exception {
+        // Initialize the database
+        vacationRequestRepository.saveAndFlush(vacationRequest);
+
+        int databaseSizeBeforeUpdate = vacationRequestRepository.findAll().size();
+
+        // Update the vacationRequest
+        VacationRequest updatedVacationRequest = vacationRequestRepository.findById(vacationRequest.getId()).get();
+        // Disconnect from session so that the updates on updatedVacationRequest are not directly saved in db
+        em.detach(updatedVacationRequest);
+        updatedVacationRequest.description(UPDATED_DESCRIPTION).date(UPDATED_DATE);
+        VacationRequestDTO vacationRequestDTO = vacationRequestMapper.toDto(updatedVacationRequest);
+
+        restVacationRequestMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, vacationRequestDTO.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.convertObjectToJsonBytes(vacationRequestDTO))
+            )
+            .andExpect(status().isOk());
+
+        // Validate the VacationRequest in the database
+        List<VacationRequest> vacationRequestList = vacationRequestRepository.findAll();
+        assertThat(vacationRequestList).hasSize(databaseSizeBeforeUpdate);
+        VacationRequest testVacationRequest = vacationRequestList.get(vacationRequestList.size() - 1);
+        assertThat(testVacationRequest.getDescription()).isEqualTo(UPDATED_DESCRIPTION);
+        assertThat(testVacationRequest.getDate()).isEqualTo(UPDATED_DATE);
+    }
+
+    @Test
+    @Transactional
+    void putNonExistingVacationRequest() throws Exception {
+        int databaseSizeBeforeUpdate = vacationRequestRepository.findAll().size();
+        vacationRequest.setId(count.incrementAndGet());
+
+        // Create the VacationRequest
+        VacationRequestDTO vacationRequestDTO = vacationRequestMapper.toDto(vacationRequest);
+
+        // If the entity doesn't have an ID, it will throw BadRequestAlertException
+        restVacationRequestMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, vacationRequestDTO.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.convertObjectToJsonBytes(vacationRequestDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        // Validate the VacationRequest in the database
+        List<VacationRequest> vacationRequestList = vacationRequestRepository.findAll();
+        assertThat(vacationRequestList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void putWithIdMismatchVacationRequest() throws Exception {
+        int databaseSizeBeforeUpdate = vacationRequestRepository.findAll().size();
+        vacationRequest.setId(count.incrementAndGet());
+
+        // Create the VacationRequest
+        VacationRequestDTO vacationRequestDTO = vacationRequestMapper.toDto(vacationRequest);
+
+        // If url ID doesn't match entity ID, it will throw BadRequestAlertException
+        restVacationRequestMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, count.incrementAndGet())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.convertObjectToJsonBytes(vacationRequestDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        // Validate the VacationRequest in the database
+        List<VacationRequest> vacationRequestList = vacationRequestRepository.findAll();
+        assertThat(vacationRequestList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void putWithMissingIdPathParamVacationRequest() throws Exception {
+        int databaseSizeBeforeUpdate = vacationRequestRepository.findAll().size();
+        vacationRequest.setId(count.incrementAndGet());
+
+        // Create the VacationRequest
+        VacationRequestDTO vacationRequestDTO = vacationRequestMapper.toDto(vacationRequest);
+
+        // If url ID doesn't match entity ID, it will throw BadRequestAlertException
+        restVacationRequestMockMvc
+            .perform(
+                put(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(vacationRequestDTO))
+            )
+            .andExpect(status().isMethodNotAllowed());
+
+        // Validate the VacationRequest in the database
+        List<VacationRequest> vacationRequestList = vacationRequestRepository.findAll();
+        assertThat(vacationRequestList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void partialUpdateVacationRequestWithPatch() throws Exception {
+        // Initialize the database
+        vacationRequestRepository.saveAndFlush(vacationRequest);
+
+        int databaseSizeBeforeUpdate = vacationRequestRepository.findAll().size();
+
+        // Update the vacationRequest using partial update
+        VacationRequest partialUpdatedVacationRequest = new VacationRequest();
+        partialUpdatedVacationRequest.setId(vacationRequest.getId());
+
+        restVacationRequestMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, partialUpdatedVacationRequest.getId())
+                    .contentType("application/merge-patch+json")
+                    .content(TestUtil.convertObjectToJsonBytes(partialUpdatedVacationRequest))
+            )
+            .andExpect(status().isOk());
+
+        // Validate the VacationRequest in the database
+        List<VacationRequest> vacationRequestList = vacationRequestRepository.findAll();
+        assertThat(vacationRequestList).hasSize(databaseSizeBeforeUpdate);
+        VacationRequest testVacationRequest = vacationRequestList.get(vacationRequestList.size() - 1);
+        assertThat(testVacationRequest.getDescription()).isEqualTo(DEFAULT_DESCRIPTION);
+        assertThat(testVacationRequest.getDate()).isEqualTo(DEFAULT_DATE);
+    }
+
+    @Test
+    @Transactional
+    void fullUpdateVacationRequestWithPatch() throws Exception {
+        // Initialize the database
+        vacationRequestRepository.saveAndFlush(vacationRequest);
+
+        int databaseSizeBeforeUpdate = vacationRequestRepository.findAll().size();
+
+        // Update the vacationRequest using partial update
+        VacationRequest partialUpdatedVacationRequest = new VacationRequest();
+        partialUpdatedVacationRequest.setId(vacationRequest.getId());
+
+        partialUpdatedVacationRequest.description(UPDATED_DESCRIPTION).date(UPDATED_DATE);
+
+        restVacationRequestMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, partialUpdatedVacationRequest.getId())
+                    .contentType("application/merge-patch+json")
+                    .content(TestUtil.convertObjectToJsonBytes(partialUpdatedVacationRequest))
+            )
+            .andExpect(status().isOk());
+
+        // Validate the VacationRequest in the database
+        List<VacationRequest> vacationRequestList = vacationRequestRepository.findAll();
+        assertThat(vacationRequestList).hasSize(databaseSizeBeforeUpdate);
+        VacationRequest testVacationRequest = vacationRequestList.get(vacationRequestList.size() - 1);
+        assertThat(testVacationRequest.getDescription()).isEqualTo(UPDATED_DESCRIPTION);
+        assertThat(testVacationRequest.getDate()).isEqualTo(UPDATED_DATE);
+    }
+
+    @Test
+    @Transactional
+    void patchNonExistingVacationRequest() throws Exception {
+        int databaseSizeBeforeUpdate = vacationRequestRepository.findAll().size();
+        vacationRequest.setId(count.incrementAndGet());
+
+        // Create the VacationRequest
+        VacationRequestDTO vacationRequestDTO = vacationRequestMapper.toDto(vacationRequest);
+
+        // If the entity doesn't have an ID, it will throw BadRequestAlertException
+        restVacationRequestMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, vacationRequestDTO.getId())
+                    .contentType("application/merge-patch+json")
+                    .content(TestUtil.convertObjectToJsonBytes(vacationRequestDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        // Validate the VacationRequest in the database
+        List<VacationRequest> vacationRequestList = vacationRequestRepository.findAll();
+        assertThat(vacationRequestList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void patchWithIdMismatchVacationRequest() throws Exception {
+        int databaseSizeBeforeUpdate = vacationRequestRepository.findAll().size();
+        vacationRequest.setId(count.incrementAndGet());
+
+        // Create the VacationRequest
+        VacationRequestDTO vacationRequestDTO = vacationRequestMapper.toDto(vacationRequest);
+
+        // If url ID doesn't match entity ID, it will throw BadRequestAlertException
+        restVacationRequestMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, count.incrementAndGet())
+                    .contentType("application/merge-patch+json")
+                    .content(TestUtil.convertObjectToJsonBytes(vacationRequestDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        // Validate the VacationRequest in the database
+        List<VacationRequest> vacationRequestList = vacationRequestRepository.findAll();
+        assertThat(vacationRequestList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void patchWithMissingIdPathParamVacationRequest() throws Exception {
+        int databaseSizeBeforeUpdate = vacationRequestRepository.findAll().size();
+        vacationRequest.setId(count.incrementAndGet());
+
+        // Create the VacationRequest
+        VacationRequestDTO vacationRequestDTO = vacationRequestMapper.toDto(vacationRequest);
+
+        // If url ID doesn't match entity ID, it will throw BadRequestAlertException
+        restVacationRequestMockMvc
+            .perform(
+                patch(ENTITY_API_URL)
+                    .contentType("application/merge-patch+json")
+                    .content(TestUtil.convertObjectToJsonBytes(vacationRequestDTO))
+            )
+            .andExpect(status().isMethodNotAllowed());
+
+        // Validate the VacationRequest in the database
+        List<VacationRequest> vacationRequestList = vacationRequestRepository.findAll();
+        assertThat(vacationRequestList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void deleteVacationRequest() throws Exception {
+        // Initialize the database
+        vacationRequestRepository.saveAndFlush(vacationRequest);
+
+        int databaseSizeBeforeDelete = vacationRequestRepository.findAll().size();
+
+        // Delete the vacationRequest
+        restVacationRequestMockMvc
+            .perform(delete(ENTITY_API_URL_ID, vacationRequest.getId()).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNoContent());
+
+        // Validate the database contains one less item
+        List<VacationRequest> vacationRequestList = vacationRequestRepository.findAll();
+        assertThat(vacationRequestList).hasSize(databaseSizeBeforeDelete - 1);
     }
 }

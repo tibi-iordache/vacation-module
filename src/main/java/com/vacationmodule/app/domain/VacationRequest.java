@@ -44,4 +44,14 @@ public class VacationRequest implements Serializable {
         inverseJoinColumns = @JoinColumn(name = "approbed_by_id")
     )
     private Set<User> approbedBies = new HashSet<>();
+
+    public VacationRequest addApprobedBy(User user) {
+        this.approbedBies.add(user);
+        return this;
+    }
+
+    public VacationRequest removeApprobedBy(User user) {
+        this.approbedBies.remove(user);
+        return this;
+    }
 }

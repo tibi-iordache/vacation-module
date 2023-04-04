@@ -15,7 +15,7 @@
   "jpaMetamodelFiltering": true,
   "name": "VacationRequest",
   "pagination": "pagination",
-  "readOnly": true,
+  "readOnly": false,
   "relationships": [
     {
       "otherEntityField": "login",

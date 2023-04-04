@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,6 +35,11 @@ public class NationalDayResource {
 
     private final Logger log = LoggerFactory.getLogger(NationalDayResource.class);
 
+    private static final String ENTITY_NAME = "nationalDay";
+
+    @Value("${jhipster.clientApp.name}")
+    private String applicationName;
+
     private final NationalDayService nationalDayService;
 
     private final NationalDayRepository nationalDayRepository;
@@ -48,6 +54,96 @@ public class NationalDayResource {
         this.nationalDayService = nationalDayService;
         this.nationalDayRepository = nationalDayRepository;
         this.nationalDayQueryService = nationalDayQueryService;
+    }
+
+    /**
+     * {@code POST  /national-days} : Create a new nationalDay.
+     *
+     * @param nationalDayDTO the nationalDayDTO to create.
+     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new nationalDayDTO, or with status {@code 400 (Bad Request)} if the nationalDay has already an ID.
+     * @throws URISyntaxException if the Location URI syntax is incorrect.
+     */
+    @PostMapping("/national-days")
+    public ResponseEntity<NationalDayDTO> createNationalDay(@Valid @RequestBody NationalDayDTO nationalDayDTO) throws URISyntaxException {
+        log.debug("REST request to save NationalDay : {}", nationalDayDTO);
+        if (nationalDayDTO.getId() != null) {
+            throw new BadRequestAlertException("A new nationalDay cannot already have an ID", ENTITY_NAME, "idexists");
+        }
+        NationalDayDTO result = nationalDayService.save(nationalDayDTO);
+        return ResponseEntity
+            .created(new URI("/api/national-days/" + result.getId()))
+            .headers(HeaderUtil.createEntityCreationAlert(applicationName, false, ENTITY_NAME, result.getId().toString()))
+            .body(result);
+    }
+
+    /**
+     * {@code PUT  /national-days/:id} : Updates an existing nationalDay.
+     *
+     * @param id the id of the nationalDayDTO to save.
+     * @param nationalDayDTO the nationalDayDTO to update.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated nationalDayDTO,
+     * or with status {@code 400 (Bad Request)} if the nationalDayDTO is not valid,
+     * or with status {@code 500 (Internal Server Error)} if the nationalDayDTO couldn't be updated.
+     * @throws URISyntaxException if the Location URI syntax is incorrect.
+     */
+    @PutMapping("/national-days/{id}")
+    public ResponseEntity<NationalDayDTO> updateNationalDay(
+        @PathVariable(value = "id", required = false) final Long id,
+        @Valid @RequestBody NationalDayDTO nationalDayDTO
+    ) throws URISyntaxException {
+        log.debug("REST request to update NationalDay : {}, {}", id, nationalDayDTO);
+        if (nationalDayDTO.getId() == null) {
+            throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
+        }
+        if (!Objects.equals(id, nationalDayDTO.getId())) {
+            throw new BadRequestAlertException("Invalid ID", ENTITY_NAME, "idinvalid");
+        }
+
+        if (!nationalDayRepository.existsById(id)) {
+            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+        }
+
+        NationalDayDTO result = nationalDayService.update(nationalDayDTO);
+        return ResponseEntity
+            .ok()
+            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, ENTITY_NAME, nationalDayDTO.getId().toString()))
+            .body(result);
+    }
+
+    /**
+     * {@code PATCH  /national-days/:id} : Partial updates given fields of an existing nationalDay, field will ignore if it is null
+     *
+     * @param id the id of the nationalDayDTO to save.
+     * @param nationalDayDTO the nationalDayDTO to update.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated nationalDayDTO,
+     * or with status {@code 400 (Bad Request)} if the nationalDayDTO is not valid,
+     * or with status {@code 404 (Not Found)} if the nationalDayDTO is not found,
+     * or with status {@code 500 (Internal Server Error)} if the nationalDayDTO couldn't be updated.
+     * @throws URISyntaxException if the Location URI syntax is incorrect.
+     */
+    @PatchMapping(value = "/national-days/{id}", consumes = { "application/json", "application/merge-patch+json" })
+    public ResponseEntity<NationalDayDTO> partialUpdateNationalDay(
+        @PathVariable(value = "id", required = false) final Long id,
+        @NotNull @RequestBody NationalDayDTO nationalDayDTO
+    ) throws URISyntaxException {
+        log.debug("REST request to partial update NationalDay partially : {}, {}", id, nationalDayDTO);
+        if (nationalDayDTO.getId() == null) {
+            throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
+        }
+        if (!Objects.equals(id, nationalDayDTO.getId())) {
+            throw new BadRequestAlertException("Invalid ID", ENTITY_NAME, "idinvalid");
+        }
+
+        if (!nationalDayRepository.existsById(id)) {
+            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+        }
+
+        Optional<NationalDayDTO> result = nationalDayService.partialUpdate(nationalDayDTO);
+
+        return ResponseUtil.wrapOrNotFound(
+            result,
+            HeaderUtil.createEntityUpdateAlert(applicationName, false, ENTITY_NAME, nationalDayDTO.getId().toString())
+        );
     }
 
     /**
@@ -91,5 +187,21 @@ public class NationalDayResource {
         log.debug("REST request to get NationalDay : {}", id);
         Optional<NationalDayDTO> nationalDayDTO = nationalDayService.findOne(id);
         return ResponseUtil.wrapOrNotFound(nationalDayDTO);
+    }
+
+    /**
+     * {@code DELETE  /national-days/:id} : delete the "id" nationalDay.
+     *
+     * @param id the id of the nationalDayDTO to delete.
+     * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
+     */
+    @DeleteMapping("/national-days/{id}")
+    public ResponseEntity<Void> deleteNationalDay(@PathVariable Long id) {
+        log.debug("REST request to delete NationalDay : {}", id);
+        nationalDayService.delete(id);
+        return ResponseEntity
+            .noContent()
+            .headers(HeaderUtil.createEntityDeletionAlert(applicationName, false, ENTITY_NAME, id.toString()))
+            .build();
     }
 }

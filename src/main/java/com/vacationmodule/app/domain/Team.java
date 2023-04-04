@@ -37,4 +37,14 @@ public class Team implements Serializable {
     @NotNull
     @JoinTable(name = "rel_team__user", joinColumns = @JoinColumn(name = "team_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
     private Set<User> users = new HashSet<>();
+
+    public Team addUser(User user) {
+        this.users.add(user);
+        return this;
+    }
+
+    public Team removeUser(User user) {
+        this.users.remove(user);
+        return this;
+    }
 }

@@ -92,6 +92,108 @@ class NationalDayResourceIT {
 
     @Test
     @Transactional
+    void createNationalDay() throws Exception {
+        int databaseSizeBeforeCreate = nationalDayRepository.findAll().size();
+        // Create the NationalDay
+        NationalDayDTO nationalDayDTO = nationalDayMapper.toDto(nationalDay);
+        restNationalDayMockMvc
+            .perform(
+                post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(nationalDayDTO))
+            )
+            .andExpect(status().isCreated());
+
+        // Validate the NationalDay in the database
+        List<NationalDay> nationalDayList = nationalDayRepository.findAll();
+        assertThat(nationalDayList).hasSize(databaseSizeBeforeCreate + 1);
+        NationalDay testNationalDay = nationalDayList.get(nationalDayList.size() - 1);
+        assertThat(testNationalDay.getName()).isEqualTo(DEFAULT_NAME);
+        assertThat(testNationalDay.getDay()).isEqualTo(DEFAULT_DAY);
+        assertThat(testNationalDay.getMonth()).isEqualTo(DEFAULT_MONTH);
+    }
+
+    @Test
+    @Transactional
+    void createNationalDayWithExistingId() throws Exception {
+        // Create the NationalDay with an existing ID
+        nationalDay.setId(1L);
+        NationalDayDTO nationalDayDTO = nationalDayMapper.toDto(nationalDay);
+
+        int databaseSizeBeforeCreate = nationalDayRepository.findAll().size();
+
+        // An entity with an existing ID cannot be created, so this API call must fail
+        restNationalDayMockMvc
+            .perform(
+                post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(nationalDayDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        // Validate the NationalDay in the database
+        List<NationalDay> nationalDayList = nationalDayRepository.findAll();
+        assertThat(nationalDayList).hasSize(databaseSizeBeforeCreate);
+    }
+
+    @Test
+    @Transactional
+    void checkNameIsRequired() throws Exception {
+        int databaseSizeBeforeTest = nationalDayRepository.findAll().size();
+        // set the field null
+        nationalDay.setName(null);
+
+        // Create the NationalDay, which fails.
+        NationalDayDTO nationalDayDTO = nationalDayMapper.toDto(nationalDay);
+
+        restNationalDayMockMvc
+            .perform(
+                post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(nationalDayDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        List<NationalDay> nationalDayList = nationalDayRepository.findAll();
+        assertThat(nationalDayList).hasSize(databaseSizeBeforeTest);
+    }
+
+    @Test
+    @Transactional
+    void checkDayIsRequired() throws Exception {
+        int databaseSizeBeforeTest = nationalDayRepository.findAll().size();
+        // set the field null
+        nationalDay.setDay(null);
+
+        // Create the NationalDay, which fails.
+        NationalDayDTO nationalDayDTO = nationalDayMapper.toDto(nationalDay);
+
+        restNationalDayMockMvc
+            .perform(
+                post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(nationalDayDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        List<NationalDay> nationalDayList = nationalDayRepository.findAll();
+        assertThat(nationalDayList).hasSize(databaseSizeBeforeTest);
+    }
+
+    @Test
+    @Transactional
+    void checkMonthIsRequired() throws Exception {
+        int databaseSizeBeforeTest = nationalDayRepository.findAll().size();
+        // set the field null
+        nationalDay.setMonth(null);
+
+        // Create the NationalDay, which fails.
+        NationalDayDTO nationalDayDTO = nationalDayMapper.toDto(nationalDay);
+
+        restNationalDayMockMvc
+            .perform(
+                post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(nationalDayDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        List<NationalDay> nationalDayList = nationalDayRepository.findAll();
+        assertThat(nationalDayList).hasSize(databaseSizeBeforeTest);
+    }
+
+    @Test
+    @Transactional
     void getAllNationalDays() throws Exception {
         // Initialize the database
         nationalDayRepository.saveAndFlush(nationalDay);
@@ -434,5 +536,249 @@ class NationalDayResourceIT {
     void getNonExistingNationalDay() throws Exception {
         // Get the nationalDay
         restNationalDayMockMvc.perform(get(ENTITY_API_URL_ID, Long.MAX_VALUE)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @Transactional
+    void putExistingNationalDay() throws Exception {
+        // Initialize the database
+        nationalDayRepository.saveAndFlush(nationalDay);
+
+        int databaseSizeBeforeUpdate = nationalDayRepository.findAll().size();
+
+        // Update the nationalDay
+        NationalDay updatedNationalDay = nationalDayRepository.findById(nationalDay.getId()).get();
+        // Disconnect from session so that the updates on updatedNationalDay are not directly saved in db
+        em.detach(updatedNationalDay);
+        updatedNationalDay.name(UPDATED_NAME).day(UPDATED_DAY).month(UPDATED_MONTH);
+        NationalDayDTO nationalDayDTO = nationalDayMapper.toDto(updatedNationalDay);
+
+        restNationalDayMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, nationalDayDTO.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.convertObjectToJsonBytes(nationalDayDTO))
+            )
+            .andExpect(status().isOk());
+
+        // Validate the NationalDay in the database
+        List<NationalDay> nationalDayList = nationalDayRepository.findAll();
+        assertThat(nationalDayList).hasSize(databaseSizeBeforeUpdate);
+        NationalDay testNationalDay = nationalDayList.get(nationalDayList.size() - 1);
+        assertThat(testNationalDay.getName()).isEqualTo(UPDATED_NAME);
+        assertThat(testNationalDay.getDay()).isEqualTo(UPDATED_DAY);
+        assertThat(testNationalDay.getMonth()).isEqualTo(UPDATED_MONTH);
+    }
+
+    @Test
+    @Transactional
+    void putNonExistingNationalDay() throws Exception {
+        int databaseSizeBeforeUpdate = nationalDayRepository.findAll().size();
+        nationalDay.setId(count.incrementAndGet());
+
+        // Create the NationalDay
+        NationalDayDTO nationalDayDTO = nationalDayMapper.toDto(nationalDay);
+
+        // If the entity doesn't have an ID, it will throw BadRequestAlertException
+        restNationalDayMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, nationalDayDTO.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.convertObjectToJsonBytes(nationalDayDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        // Validate the NationalDay in the database
+        List<NationalDay> nationalDayList = nationalDayRepository.findAll();
+        assertThat(nationalDayList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void putWithIdMismatchNationalDay() throws Exception {
+        int databaseSizeBeforeUpdate = nationalDayRepository.findAll().size();
+        nationalDay.setId(count.incrementAndGet());
+
+        // Create the NationalDay
+        NationalDayDTO nationalDayDTO = nationalDayMapper.toDto(nationalDay);
+
+        // If url ID doesn't match entity ID, it will throw BadRequestAlertException
+        restNationalDayMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, count.incrementAndGet())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.convertObjectToJsonBytes(nationalDayDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        // Validate the NationalDay in the database
+        List<NationalDay> nationalDayList = nationalDayRepository.findAll();
+        assertThat(nationalDayList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void putWithMissingIdPathParamNationalDay() throws Exception {
+        int databaseSizeBeforeUpdate = nationalDayRepository.findAll().size();
+        nationalDay.setId(count.incrementAndGet());
+
+        // Create the NationalDay
+        NationalDayDTO nationalDayDTO = nationalDayMapper.toDto(nationalDay);
+
+        // If url ID doesn't match entity ID, it will throw BadRequestAlertException
+        restNationalDayMockMvc
+            .perform(put(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(nationalDayDTO)))
+            .andExpect(status().isMethodNotAllowed());
+
+        // Validate the NationalDay in the database
+        List<NationalDay> nationalDayList = nationalDayRepository.findAll();
+        assertThat(nationalDayList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void partialUpdateNationalDayWithPatch() throws Exception {
+        // Initialize the database
+        nationalDayRepository.saveAndFlush(nationalDay);
+
+        int databaseSizeBeforeUpdate = nationalDayRepository.findAll().size();
+
+        // Update the nationalDay using partial update
+        NationalDay partialUpdatedNationalDay = new NationalDay();
+        partialUpdatedNationalDay.setId(nationalDay.getId());
+
+        partialUpdatedNationalDay.day(UPDATED_DAY).month(UPDATED_MONTH);
+
+        restNationalDayMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, partialUpdatedNationalDay.getId())
+                    .contentType("application/merge-patch+json")
+                    .content(TestUtil.convertObjectToJsonBytes(partialUpdatedNationalDay))
+            )
+            .andExpect(status().isOk());
+
+        // Validate the NationalDay in the database
+        List<NationalDay> nationalDayList = nationalDayRepository.findAll();
+        assertThat(nationalDayList).hasSize(databaseSizeBeforeUpdate);
+        NationalDay testNationalDay = nationalDayList.get(nationalDayList.size() - 1);
+        assertThat(testNationalDay.getName()).isEqualTo(DEFAULT_NAME);
+        assertThat(testNationalDay.getDay()).isEqualTo(UPDATED_DAY);
+        assertThat(testNationalDay.getMonth()).isEqualTo(UPDATED_MONTH);
+    }
+
+    @Test
+    @Transactional
+    void fullUpdateNationalDayWithPatch() throws Exception {
+        // Initialize the database
+        nationalDayRepository.saveAndFlush(nationalDay);
+
+        int databaseSizeBeforeUpdate = nationalDayRepository.findAll().size();
+
+        // Update the nationalDay using partial update
+        NationalDay partialUpdatedNationalDay = new NationalDay();
+        partialUpdatedNationalDay.setId(nationalDay.getId());
+
+        partialUpdatedNationalDay.name(UPDATED_NAME).day(UPDATED_DAY).month(UPDATED_MONTH);
+
+        restNationalDayMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, partialUpdatedNationalDay.getId())
+                    .contentType("application/merge-patch+json")
+                    .content(TestUtil.convertObjectToJsonBytes(partialUpdatedNationalDay))
+            )
+            .andExpect(status().isOk());
+
+        // Validate the NationalDay in the database
+        List<NationalDay> nationalDayList = nationalDayRepository.findAll();
+        assertThat(nationalDayList).hasSize(databaseSizeBeforeUpdate);
+        NationalDay testNationalDay = nationalDayList.get(nationalDayList.size() - 1);
+        assertThat(testNationalDay.getName()).isEqualTo(UPDATED_NAME);
+        assertThat(testNationalDay.getDay()).isEqualTo(UPDATED_DAY);
+        assertThat(testNationalDay.getMonth()).isEqualTo(UPDATED_MONTH);
+    }
+
+    @Test
+    @Transactional
+    void patchNonExistingNationalDay() throws Exception {
+        int databaseSizeBeforeUpdate = nationalDayRepository.findAll().size();
+        nationalDay.setId(count.incrementAndGet());
+
+        // Create the NationalDay
+        NationalDayDTO nationalDayDTO = nationalDayMapper.toDto(nationalDay);
+
+        // If the entity doesn't have an ID, it will throw BadRequestAlertException
+        restNationalDayMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, nationalDayDTO.getId())
+                    .contentType("application/merge-patch+json")
+                    .content(TestUtil.convertObjectToJsonBytes(nationalDayDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        // Validate the NationalDay in the database
+        List<NationalDay> nationalDayList = nationalDayRepository.findAll();
+        assertThat(nationalDayList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void patchWithIdMismatchNationalDay() throws Exception {
+        int databaseSizeBeforeUpdate = nationalDayRepository.findAll().size();
+        nationalDay.setId(count.incrementAndGet());
+
+        // Create the NationalDay
+        NationalDayDTO nationalDayDTO = nationalDayMapper.toDto(nationalDay);
+
+        // If url ID doesn't match entity ID, it will throw BadRequestAlertException
+        restNationalDayMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, count.incrementAndGet())
+                    .contentType("application/merge-patch+json")
+                    .content(TestUtil.convertObjectToJsonBytes(nationalDayDTO))
+            )
+            .andExpect(status().isBadRequest());
+
+        // Validate the NationalDay in the database
+        List<NationalDay> nationalDayList = nationalDayRepository.findAll();
+        assertThat(nationalDayList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void patchWithMissingIdPathParamNationalDay() throws Exception {
+        int databaseSizeBeforeUpdate = nationalDayRepository.findAll().size();
+        nationalDay.setId(count.incrementAndGet());
+
+        // Create the NationalDay
+        NationalDayDTO nationalDayDTO = nationalDayMapper.toDto(nationalDay);
+
+        // If url ID doesn't match entity ID, it will throw BadRequestAlertException
+        restNationalDayMockMvc
+            .perform(
+                patch(ENTITY_API_URL).contentType("application/merge-patch+json").content(TestUtil.convertObjectToJsonBytes(nationalDayDTO))
+            )
+            .andExpect(status().isMethodNotAllowed());
+
+        // Validate the NationalDay in the database
+        List<NationalDay> nationalDayList = nationalDayRepository.findAll();
+        assertThat(nationalDayList).hasSize(databaseSizeBeforeUpdate);
+    }
+
+    @Test
+    @Transactional
+    void deleteNationalDay() throws Exception {
+        // Initialize the database
+        nationalDayRepository.saveAndFlush(nationalDay);
+
+        int databaseSizeBeforeDelete = nationalDayRepository.findAll().size();
+
+        // Delete the nationalDay
+        restNationalDayMockMvc
+            .perform(delete(ENTITY_API_URL_ID, nationalDay.getId()).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNoContent());
+
+        // Validate the database contains one less item
+        List<NationalDay> nationalDayList = nationalDayRepository.findAll();
+        assertThat(nationalDayList).hasSize(databaseSizeBeforeDelete - 1);
     }
 }

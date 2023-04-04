@@ -10,7 +10,7 @@
   "jpaMetamodelFiltering": true,
   "name": "Team",
   "pagination": "pagination",
-  "readOnly": true,
+  "readOnly": false,
   "relationships": [
     {
       "otherEntityField": "id",
