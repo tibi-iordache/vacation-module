@@ -24,3 +24,21 @@ export const Home = () => (
     </NavLink>
   </NavItem>
 );
+
+export const NationalDay = () => (
+  <NavItem>
+    <NavLink tag={Link} to="/national-day" className="d-flex align-items-center">
+      <FontAwesomeIcon icon="th-list" />
+      <span> National Days </span>
+    </NavLink>
+  </NavItem>
+);
+
+export const VacationRequest = () => (
+  <NavItem>
+    <NavLink tag={Link} to="/vacation-request" className="d-flex align-items-center">
+      <FontAwesomeIcon icon="th-list" />
+      <span> Vacation Requests </span>
+    </NavLink>
+  </NavItem>
+);
