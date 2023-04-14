@@ -209,7 +209,12 @@ public class VacationRequestService {
             Integer vacationDay = vacationZonedDateTime.getDayOfMonth();
             int vacationYear = vacationZonedDateTime.getYear();
 
-            if (requestDay.equals(vacationDay) && requestMonth.equals(vacationMonth) && requestYear == vacationYear) {
+            if (
+                requestDay.equals(vacationDay) &&
+                requestMonth.equals(vacationMonth) &&
+                requestYear == vacationYear &&
+                !vacationRequest.getId().equals(userVacation.getId())
+            ) {
                 throw new VacationRequestDuplicateException();
             }
         }
