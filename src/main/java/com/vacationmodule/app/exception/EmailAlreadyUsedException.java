@@ -1,4 +1,4 @@
-package com.vacationmodule.app.service;
+package com.vacationmodule.app.exception;
 
 public class EmailAlreadyUsedException extends RuntimeException {
 

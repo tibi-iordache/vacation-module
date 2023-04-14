@@ -1,6 +1,7 @@
 package com.vacationmodule.app.web.rest;
 
 import com.vacationmodule.app.repository.NationalDayRepository;
+import com.vacationmodule.app.security.AuthoritiesConstants;
 import com.vacationmodule.app.service.NationalDayQueryService;
 import com.vacationmodule.app.service.NationalDayService;
 import com.vacationmodule.app.service.criteria.NationalDayCriteria;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import tech.jhipster.web.util.HeaderUtil;
@@ -64,6 +66,7 @@ public class NationalDayResource {
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PostMapping("/national-days")
+    @PreAuthorize("hasAuthority(\"" + AuthoritiesConstants.ADMIN + "\")")
     public ResponseEntity<NationalDayDTO> createNationalDay(@Valid @RequestBody NationalDayDTO nationalDayDTO) throws URISyntaxException {
         log.debug("REST request to save NationalDay : {}", nationalDayDTO);
         if (nationalDayDTO.getId() != null) {
@@ -87,6 +90,7 @@ public class NationalDayResource {
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PutMapping("/national-days/{id}")
+    @PreAuthorize("hasAuthority(\"" + AuthoritiesConstants.ADMIN + "\")")
     public ResponseEntity<NationalDayDTO> updateNationalDay(
         @PathVariable(value = "id", required = false) final Long id,
         @Valid @RequestBody NationalDayDTO nationalDayDTO
@@ -122,6 +126,7 @@ public class NationalDayResource {
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PatchMapping(value = "/national-days/{id}", consumes = { "application/json", "application/merge-patch+json" })
+    @PreAuthorize("hasAuthority(\"" + AuthoritiesConstants.ADMIN + "\")")
     public ResponseEntity<NationalDayDTO> partialUpdateNationalDay(
         @PathVariable(value = "id", required = false) final Long id,
         @NotNull @RequestBody NationalDayDTO nationalDayDTO
@@ -196,6 +201,7 @@ public class NationalDayResource {
      * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
      */
     @DeleteMapping("/national-days/{id}")
+    @PreAuthorize("hasAuthority(\"" + AuthoritiesConstants.ADMIN + "\")")
     public ResponseEntity<Void> deleteNationalDay(@PathVariable Long id) {
         log.debug("REST request to delete NationalDay : {}", id);
         nationalDayService.delete(id);

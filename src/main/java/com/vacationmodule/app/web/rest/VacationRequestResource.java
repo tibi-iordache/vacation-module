@@ -1,5 +1,9 @@
 package com.vacationmodule.app.web.rest;
 
+import com.vacationmodule.app.exception.NationalDayException;
+import com.vacationmodule.app.exception.VacationDaysNumberExceededException;
+import com.vacationmodule.app.exception.VacationRequestDuplicateException;
+import com.vacationmodule.app.exception.WeekdayException;
 import com.vacationmodule.app.repository.VacationRequestRepository;
 import com.vacationmodule.app.service.VacationRequestQueryService;
 import com.vacationmodule.app.service.VacationRequestService;
@@ -20,6 +24,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import tech.jhipster.web.util.HeaderUtil;
@@ -65,16 +70,27 @@ public class VacationRequestResource {
      */
     @PostMapping("/vacation-requests")
     public ResponseEntity<VacationRequestDTO> createVacationRequest(@Valid @RequestBody VacationRequestDTO vacationRequestDTO)
-        throws URISyntaxException {
+        throws URISyntaxException, NationalDayException {
         log.debug("REST request to save VacationRequest : {}", vacationRequestDTO);
         if (vacationRequestDTO.getId() != null) {
             throw new BadRequestAlertException("A new vacationRequest cannot already have an ID", ENTITY_NAME, "idexists");
         }
-        VacationRequestDTO result = vacationRequestService.save(vacationRequestDTO);
-        return ResponseEntity
-            .created(new URI("/api/vacation-requests/" + result.getId()))
-            .headers(HeaderUtil.createEntityCreationAlert(applicationName, false, ENTITY_NAME, result.getId().toString()))
-            .body(result);
+        try {
+            VacationRequestDTO result = vacationRequestService.save(vacationRequestDTO);
+
+            return ResponseEntity
+                .created(new URI("/api/vacation-requests/" + result.getId()))
+                .headers(HeaderUtil.createEntityCreationAlert(applicationName, false, ENTITY_NAME, result.getId().toString()))
+                .body(result);
+        } catch (NationalDayException exception) {
+            throw new BadRequestAlertException(exception.getMessage(), ENTITY_NAME, "datenotvalid");
+        } catch (VacationDaysNumberExceededException exception) {
+            throw new BadRequestAlertException(exception.getMessage(), ENTITY_NAME, "vacationdaysnoexceeded");
+        } catch (VacationRequestDuplicateException exception) {
+            throw new BadRequestAlertException(exception.getMessage(), ENTITY_NAME, "vacationduplicate");
+        } catch (WeekdayException exception) {
+            throw new BadRequestAlertException(exception.getMessage(), ENTITY_NAME, "weekday");
+        }
     }
 
     /**
@@ -104,11 +120,20 @@ public class VacationRequestResource {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
         }
 
-        VacationRequestDTO result = vacationRequestService.update(vacationRequestDTO);
-        return ResponseEntity
-            .ok()
-            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, ENTITY_NAME, vacationRequestDTO.getId().toString()))
-            .body(result);
+        try {
+            VacationRequestDTO result = vacationRequestService.update(vacationRequestDTO);
+
+            return ResponseEntity
+                .ok()
+                .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, ENTITY_NAME, vacationRequestDTO.getId().toString()))
+                .body(result);
+        } catch (NationalDayException exception) {
+            throw new BadRequestAlertException(exception.getMessage(), ENTITY_NAME, "datenotvalid");
+        } catch (VacationRequestDuplicateException exception) {
+            throw new BadRequestAlertException(exception.getMessage(), ENTITY_NAME, "vacationduplicate");
+        } catch (WeekdayException exception) {
+            throw new BadRequestAlertException(exception.getMessage(), ENTITY_NAME, "weekday");
+        }
     }
 
     /**
@@ -175,6 +200,18 @@ public class VacationRequestResource {
     public ResponseEntity<Long> countVacationRequests(VacationRequestCriteria criteria) {
         log.debug("REST request to count VacationRequests by criteria: {}", criteria);
         return ResponseEntity.ok().body(vacationRequestQueryService.countByCriteria(criteria));
+    }
+
+    /**
+     * {@code GET  /vacation-requests/{userId}/{year}} : get the number of available vacation requests for a given year
+     *
+     * @param userId
+     * @param year
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the count in body.
+     */
+    @GetMapping("/vacation-requests/{userId}/{year}")
+    public ResponseEntity<Integer> getAvailableVacationRequestsForYear(@PathVariable Long userId, @PathVariable Integer year) {
+        return ResponseEntity.ok().body(vacationRequestService.getAvailableVacationRequestsForYear(userId, year));
     }
 
     /**

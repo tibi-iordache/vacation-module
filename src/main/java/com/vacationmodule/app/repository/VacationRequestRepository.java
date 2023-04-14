@@ -44,4 +44,6 @@ public interface VacationRequestRepository
 
     @Query("select vacationRequest from VacationRequest vacationRequest left join fetch vacationRequest.user where vacationRequest.id =:id")
     Optional<VacationRequest> findOneWithToOneRelationships(@Param("id") Long id);
+
+    List<VacationRequest> findAllByUser_Id(Long id);
 }

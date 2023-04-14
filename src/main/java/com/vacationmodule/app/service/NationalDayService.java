@@ -4,6 +4,7 @@ import com.vacationmodule.app.domain.NationalDay;
 import com.vacationmodule.app.repository.NationalDayRepository;
 import com.vacationmodule.app.service.dto.NationalDayDTO;
 import com.vacationmodule.app.service.mapper.NationalDayMapper;
+import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,6 +87,13 @@ public class NationalDayService {
     public Page<NationalDayDTO> findAll(Pageable pageable) {
         log.debug("Request to get all NationalDays");
         return nationalDayRepository.findAll(pageable).map(nationalDayMapper::toDto);
+    }
+
+    @Transactional(readOnly = true)
+    public List<NationalDay> findAllNotPageable() {
+        log.debug("Request to get all national days without pagination");
+
+        return nationalDayRepository.findAll();
     }
 
     /**
