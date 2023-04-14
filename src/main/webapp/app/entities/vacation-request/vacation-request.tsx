@@ -112,6 +112,9 @@ export const VacationRequest = () => {
                 <th>
                   User <FontAwesomeIcon icon="sort" />
                 </th>
+                <th>
+                  Approbed by count <FontAwesomeIcon icon="sort" />
+                </th>
                 <th />
               </tr>
             </thead>
@@ -126,6 +129,7 @@ export const VacationRequest = () => {
                   <td>{vacationRequest.description}</td>
                   <td>{vacationRequest.date ? <TextFormat type="date" value={vacationRequest.date} format={APP_DATE_FORMAT} /> : null}</td>
                   <td>{vacationRequest.user ? vacationRequest.user.login : ''}</td>
+                  <td>{vacationRequest.approbedBies ? vacationRequest.approbedBies.length : ''}</td>
                   <td className="text-end">
                     <div className="btn-group flex-btn-group-container">
                       <Button
